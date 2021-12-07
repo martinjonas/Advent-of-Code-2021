@@ -5,13 +5,13 @@ import sys
 
 def part1(data):
     return min(sum(abs(pos - crab) for crab in data)
-               for pos in range(1, len(data) + 1))
+               for pos in range(min(data), max(data) + 1))
 
 
 def part2(data):
     return min(
         sum((abs(pos - crab) * (abs(pos - crab) + 1)) // 2 for crab in data)
-        for pos in range(1, len(data) + 1)
+        for pos in range(min(data), max(data) + 1)
     )
 
 
