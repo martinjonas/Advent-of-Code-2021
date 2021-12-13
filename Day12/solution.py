@@ -5,27 +5,35 @@ import collections
 
 
 def solve(edges_from, allow_revisit):
-    paths = [0]
+    cache = {}
 
     def dfs(cur, path, allow_revisit):
+        cache_key = (cur, tuple(sorted(path)), allow_revisit)
+        cache_res = cache.get(cache_key)
+        if cache_res is not None:
+            return cache_res
+
+        paths = 0
         for neighbor in edges_from[cur]:
             if (neighbor == 'end'):
-                paths[0] += 1
+                paths += 1
                 continue
             if neighbor == 'start':
                 continue
             if (neighbor.islower() and neighbor in path):
                 if allow_revisit:
-                    dfs(neighbor, path, False)
+                    paths += dfs(neighbor, path, False)
             else:
                 if neighbor.islower():
                     path.add(neighbor)
-                dfs(neighbor, path, allow_revisit)
+                paths += dfs(neighbor, path, allow_revisit)
                 if neighbor.islower():
                     path.remove(neighbor)
 
-    dfs('start', set(['start']), allow_revisit)
-    return paths[0]
+        cache[cache_key] = paths
+        return paths
+
+    return dfs('start', set(['start']), allow_revisit)
 
 
 def part1(edges_from):
