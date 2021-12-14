@@ -22,10 +22,6 @@ def solve(template, rules, steps):
     return(ordered_counts[0][1] - ordered_counts[-1][1])
 
 
-def part2(data):
-    pass
-
-
 def main():
     input_file = "input"
     if (len(sys.argv) > 1):
