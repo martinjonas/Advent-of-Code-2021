@@ -29,7 +29,7 @@ def find_shortest(grid, target):
         (v, h) = current
         for dv, dh in ((0, 1), (0, -1), (1, 0), (-1, 0)):
             neighbor = (v + dv, h + dh)
-            if neighbor not in grid:
+            if neighbor not in grid or neighbor in closed:
                 continue
 
             heapq.heappush(heap, (currentrisk + grid[neighbor], neighbor))
