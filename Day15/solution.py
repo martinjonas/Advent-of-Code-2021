@@ -9,10 +9,7 @@ def find_shortest(grid, target):
     # something like Dijkstra from the top of my head
     # it is 6 AM here… ¯\_(ツ)_/¯
 
-    heap = []
-    for start in ((0, 1), (1, 0)):
-        heapq.heappush(heap, (grid[start], start))
-
+    heap = [(0, (0, 0))]
     closed = set()
 
     while heap:
