@@ -6,29 +6,6 @@ import sys
 import functools
 import _operator
 from dataclasses import dataclass
-from typing import List, Tuple
-
-
-
-def hex_to_bin(s):
-    m = {'0' : '0000',
-         '1' : '0001',
-         '2' : '0010',
-         '3' : '0011',
-         '4' : '0100',
-         '5' : '0101',
-         '6' : '0110',
-         '7' : '0111',
-         '8' : '1000',
-         '9' : '1001',
-         'A' : '1010',
-         'B' : '1011',
-         'C' : '1100',
-         'D' : '1101',
-         'E' : '1110',
-         'F' : '1111'}
-
-    return "".join(m[ch] for ch in s)
 
 
 @dataclass
@@ -42,7 +19,7 @@ class Literal:
 class Operation:
     version: int
     typeid: int
-    packets: List[Literal | Operation]
+    packets: list[Literal | Operation]
 
 
 class BitReader:
@@ -54,7 +31,7 @@ class BitReader:
         res = self.bits[self.offset:self.offset+n]
         self.offset += n
         return res
-
+    
     
 def parse_packets(bits: BitReader) -> Literal | Operation:
     version = int(bits.read(3), 2)
@@ -68,29 +45,27 @@ def parse_packets(bits: BitReader) -> Literal | Operation:
             inner.append(data)
             if header == "0":
                 break
-        literal = int("".join(inner), 2)
-        return Literal(version, typeid, literal)
+        value = int("".join(inner), 2)
+        
+        return Literal(version, typeid, value)
     else:
         header = bits.read(1)
         
         if header == "0":
-            length = int(bits.read(15), 2)
+            to_parse = int(bits.read(15), 2)
             start_offset = bits.offset
             
             inner = []
-            while bits.offset < start_offset + length:
+            while bits.offset < start_offset + to_parse:
                 packet = parse_packets(bits)
                 inner.append(packet)
-            assert(bits.offset == start_offset + length)
+            assert(bits.offset == start_offset + to_parse)
+            
             return Operation(version, typeid, inner)
         else:
             length = int(bits.read(11), 2)            
-
-            inner = []
-            for _ in range(length):
-                packet = parse_packets(bits)
-                inner.append(packet)
-                
+            inner = [parse_packets(bits) for _ in range(length)]
+            
             return Operation(version, typeid, inner)
 
 
@@ -126,6 +101,10 @@ def eval_packets(packet: Literal | Operation) -> int:
     assert False
     
 
+def hex_to_bin(s):
+    return bin(int(s, 16))[2:].zfill(len(s)*4)
+
+    
 def part1(data):
     bits = hex_to_bin(data)
     packet = parse_packets(BitReader(bits))
