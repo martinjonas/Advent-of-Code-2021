@@ -45,51 +45,53 @@ class Operation:
     packets: List[Literal | Operation]
 
 
+class BitReader:
+    def __init__(self, bits: str):
+        self.bits = bits
+        self.offset = 0
+    
+    def read(self, n: int):
+        res = self.bits[self.offset:self.offset+n]
+        self.offset += n
+        return res
 
-def parse_packets(bits) -> Tuple[Literal | Operation, int]:
-    version = int(bits[0:3], 2)
-    typeid = int(bits[3:6], 2)
-    packetdata = bits[6:]
+    
+def parse_packets(bits: BitReader) -> Literal | Operation:
+    version = int(bits.read(3), 2)
+    typeid = int(bits.read(3), 2)
 
     if typeid == 4:
-        if len(packetdata) % 4 != 0:
-            packetdata += "0" * (4 - len(packetdata) % 4)
-        
         inner = []
         while True:
-            inner.append(packetdata[1:5])
-            if packetdata[0] == "0":
+            header = bits.read(1)
+            data = bits.read(4)
+            inner.append(data)
+            if header == "0":
                 break
-            packetdata = packetdata[5:]
         literal = int("".join(inner), 2)
-        return (Literal(version, typeid, literal), 6 + len(inner) * 5)
+        return Literal(version, typeid, literal)
     else:
-        length = None
-        if packetdata[0] == "0":
-            length = int(packetdata[1:16], 2)
-            packetdata = packetdata[16:]
-
-            parsed = 0
+        header = bits.read(1)
+        
+        if header == "0":
+            length = int(bits.read(15), 2)
+            start_offset = bits.offset
+            
             inner = []
-            while parsed < length:
-                (packet, plen) = parse_packets(packetdata)
-                packetdata = packetdata[plen:]
+            while bits.offset < start_offset + length:
+                packet = parse_packets(bits)
                 inner.append(packet)
-                parsed += plen
-            assert(parsed == length)
-            return (Operation(version, typeid, inner), 6 + 1 + 15 + length)
+            assert(bits.offset == start_offset + length)
+            return Operation(version, typeid, inner)
         else:
-            length = int(packetdata[1:12], 2)
-            packetdata = packetdata[12:]
+            length = int(bits.read(11), 2)            
 
-            parsed = 0
             inner = []
             for _ in range(length):
-                (packet, plen) = parse_packets(packetdata)
-                packetdata = packetdata[plen:]
+                packet = parse_packets(bits)
                 inner.append(packet)
-                parsed += plen
-            return (Operation(version, typeid, inner), 6 + 1 + 11 + parsed)
+                
+            return Operation(version, typeid, inner)
 
 
 def sum_versions(packet: Literal | Operation) -> int:
@@ -110,9 +112,9 @@ def eval_packets(packet: Literal | Operation) -> int:
         case Operation(_, 1, packets):
             return functools.reduce(_operator.mul, (eval_packets(packet) for packet in packets))
         case Operation(_, 2, packets):
-            return functools.reduce(min, (eval_packets(packet) for packet in packets))
+            return min(eval_packets(packet) for packet in packets)
         case Operation(_, 3, packets):
-            return functools.reduce(max, (eval_packets(packet) for packet in packets))
+            return max(eval_packets(packet) for packet in packets)
         case Operation(_, 5, [l, r]):
             return 1 if eval_packets(l) > eval_packets(r) else 0
         case Operation(_, 5, [l, r]):
@@ -126,13 +128,13 @@ def eval_packets(packet: Literal | Operation) -> int:
 
 def part1(data):
     bits = hex_to_bin(data)
-    packet, _ = parse_packets(bits)
+    packet = parse_packets(BitReader(bits))
     return sum_versions(packet)
 
 
 def part2(data):
     bits = hex_to_bin(data)
-    packet, _ = parse_packets(bits)
+    packet = parse_packets(BitReader(bits))
     return eval_packets(packet)
 
 
